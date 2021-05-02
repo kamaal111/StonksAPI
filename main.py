@@ -25,6 +25,6 @@ def get_quote_data(quote: str, interval: str = "1d", start_date: str = ""):
     if interval not in SUPPORTED_INTERVALS:
         interval = "1d"
 
-    aapl = yfinance.download(quote, start=start_date, end_date=end_date, interval=interval)
+    tickers = yfinance.download(quote, start=start_date, end_date=end_date, interval=interval)
 
-    return aapl["Close"].to_dict()
+    return tickers["Close"].to_dict()
