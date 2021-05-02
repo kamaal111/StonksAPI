@@ -1,6 +1,6 @@
 from typing import Optional
 from fastapi import FastAPI
-from datetime import date
+from datetime import date, timedelta, datetime
 import pandas
 import yfinance
 
@@ -15,12 +15,16 @@ def read_root():
     return {"Hello": "World"}
 
 @app.get("/quote/{quote}")
-def read_item(quote: str, interval: Optional[str] = None):
-    start_date = pandas.to_datetime('2021-01-01')
+def get_quote_data(quote: str, interval: str = "1d", start_date: str = ""):
+    try:
+        datetime.strptime(start_date, '%Y-%m-%d')
+    except ValueError:
+        start_date = pandas.to_datetime(date.today() - timedelta(days=3))
     end_date = pandas.to_datetime(date.today())
-    user_defined_interval = "1d"
-    if interval in SUPPORTED_INTERVALS:
-        user_defined_interval = interval
-    aapl = yfinance.download(quote, start=start_date, end=end_date, interval=user_defined_interval)
+
+    if interval not in SUPPORTED_INTERVALS:
+        interval = "1d"
+
+    aapl = yfinance.download(quote, start=start_date, end_date=end_date, interval=interval)
 
     return aapl["Close"].to_dict()
