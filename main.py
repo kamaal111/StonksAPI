@@ -1,7 +1,6 @@
 from typing import Optional
 from fastapi import FastAPI
 from datetime import date, timedelta, datetime
-import pandas
 import yfinance
 
 
