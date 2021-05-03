@@ -19,8 +19,8 @@ def get_quote_data(quote: str, interval: str = "1d", start_date: str = ""):
     try:
         datetime.strptime(start_date, '%Y-%m-%d')
     except ValueError:
-        start_date = pandas.to_datetime(date.today() - timedelta(days=3))
-    end_date = pandas.to_datetime(date.today())
+        start_date = date.today() - timedelta(days=3)
+    end_date = date.today()
 
     if interval not in SUPPORTED_INTERVALS:
         interval = "1d"
