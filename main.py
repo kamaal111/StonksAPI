@@ -25,6 +25,17 @@ def get_quote_data(quote: str, interval: str = "1d", start_date: str = ""):
     if interval not in SUPPORTED_INTERVALS:
         interval = "1d"
 
-    tickers = yfinance.download(quote, start=start_date, end_date=end_date, interval=interval)
+    response = {}
+    for (ticker_key, ticker) in yfinance.Tickers(quote).tickers.items():
+        response[ticker_key] = {}
+        close = ticker.history(start=start_date, end=end_date, interval=interval)["Close"]
+        response[ticker_key]["close"] = close.to_dict()
+        info = ticker.info
+        response_info = {}
+        response_info["logo_url"] = info["logo_url"]
+        response_info["previous_close"] = info["previousClose"]
+        response_info["short_name"] = info["shortName"]
+        response_info["long_name"] = info["longName"]
+        response[ticker_key]["info"] = response_info
 
-    return tickers["Close"].to_dict()
+    return response
