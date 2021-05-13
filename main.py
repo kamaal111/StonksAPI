@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Dict, Optional
 from fastapi import FastAPI
 from datetime import date, timedelta, datetime
-from time import perf_counter
+from pydantic import BaseModel
 import yfinance
 
 
@@ -11,26 +11,41 @@ SUPPORTED_INTERVALS = ["1m", "2m", "5m", "15m", "30m", "60m",
 
 app = FastAPI()
 
+class RootModel(BaseModel):
+    Hello: str
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
 
-@app.get("/info/{symbol}")
+@app.get("/", response_model=RootModel)
+def get_root():
+    return {"Hello": "Welcome"}
+
+
+class InfoModel(BaseModel):
+    logo_url: Optional[str]
+    previous_close: Optional[float]
+    short_name: Optional[str]
+    long_name: Optional[str]
+    currency: Optional[str]
+
+
+@app.get("/info/{symbol}", response_model=Dict[str, InfoModel])
 def get_info(symbol: str):
     response = {}
     for (ticker_key, ticker) in yfinance.Tickers(symbol).tickers.items():
         info = ticker.info
-        response_info = {}
-        response_info["logo_url"] = info["logo_url"]
-        response_info["previous_close"] = info["previousClose"]
-        response_info["short_name"] = info["shortName"]
-        response_info["long_name"] = info["longName"]
+        response_info = {
+            "logo_url": info.get("logo_url", None),
+            "previous_close": info.get("previousClose", None),
+            "short_name": info.get("shortName", None),
+            "long_name": info.get("longName", None),
+            "currency": info.get("currency", None)
+        }
         response[ticker_key] = response_info
 
     return response
 
-@app.get("/close/{symbol}")
+
+@app.get("/close/{symbol}", response_model=Dict[str, Dict[datetime, float]])
 def get_close(symbol: str, interval: Optional[str] = "1d", start_date: Optional[str] = ""):
     try:
         datetime.strptime(start_date, '%Y-%m-%d')
