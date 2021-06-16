@@ -22,7 +22,6 @@ def get_root():
 
 class InfoModel(BaseModel):
     logo_url: Optional[str]
-    previous_close: Optional[float]
     short_name: Optional[str]
     long_name: Optional[str]
     currency: Optional[str]
@@ -35,7 +34,6 @@ def get_info(symbol: str):
         info = ticker.info
         response_info = {
             "logo_url": info.get("logo_url", None),
-            "previous_close": info.get("previousClose", None),
             "short_name": info.get("shortName", None),
             "long_name": info.get("longName", None),
             "currency": info.get("currency", None)
