@@ -12,12 +12,14 @@ SUPPORTED_INTERVALS = ["1m", "2m", "5m", "15m", "30m", "60m",
 app = FastAPI()
 
 class RootModel(BaseModel):
-    Hello: str
+    hello: str
 
 
 @app.get("/", response_model=RootModel)
 def get_root():
-    return {"Hello": "Welcome"}
+    return {
+        "hello": "welcome"
+    }
 
 
 class InfoModel(BaseModel):
