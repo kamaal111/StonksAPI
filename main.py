@@ -37,14 +37,21 @@ def get_info(symbol: str, close_date: Optional[str] = ""):
     end_date = None
     if close_date is not None:
         try:
-            datetime.strptime(close_date, '%Y-%m-%d')
+            close_date = datetime.strptime(close_date, '%Y-%m-%d')
         except ValueError:
-            close_date = datetime.today() - timedelta(days=3)
-        end_date = date.today()
+            close_date = datetime.date()
+        end_date = close_date
     for (ticker_key, ticker) in yfinance.Tickers(symbol).tickers.items():
         if ticker_key != "SYMBOL":
             info = ticker.info
-            close = info.get("close", None)
+            close = info.get("previousClose", None)
+            if end_date is not None:
+                start_date = (close_date - timedelta(days=3)).date()
+                closes = ticker.history(start=start_date, end=end_date, interval="1d")["Close"].to_dict()
+                closes_time_stamps = closes.keys()
+                if len(closes_time_stamps) > 0:
+                    last_close = closes[max(closes_time_stamps)]
+                    close = last_close
             if close is not None:
                 logo_url =  info.get("logo_url", None)
                 if logo_url == "":
