@@ -1,5 +1,5 @@
 from typing import Dict, Optional
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from datetime import date, timedelta, datetime
 from pydantic import BaseModel
 import yfinance
@@ -35,17 +35,24 @@ class InfoModel(BaseModel):
 def get_info(symbol: str):
     response = {}
     for (ticker_key, ticker) in yfinance.Tickers(symbol).tickers.items():
-        info = ticker.info
-        response_info = {
-            "logo_url": info.get("logo_url", None),
-            "short_name": info.get("shortName", None),
-            "long_name": info.get("longName", None),
-            "previous_close": info.get("previousClose", None),
-            "currency": info.get("currency", None),
-            "symbol": info.get("symbol", None)
-        }
-        response[ticker_key] = response_info
-
+        if ticker_key != "SYMBOL":
+            info = ticker.info
+            previous_close = info.get("previousClose", None)
+            if previous_close is not None:
+                logo_url =  info.get("logo_url", None)
+                if logo_url == "":
+                    logo_url = None
+                response_info = {
+                    "logo_url": logo_url,
+                    "short_name": info.get("shortName", None),
+                    "long_name": info.get("longName", None),
+                    "previous_close": previous_close,
+                    "currency": info.get("currency", None),
+                    "symbol": info.get("symbol", None)
+                }
+                response[ticker_key] = response_info
+    if len(response) == 0:
+        raise HTTPException(status_code=404, detail="No items found")
     return response
 
 
