@@ -32,10 +32,10 @@ class InfoModel(BaseModel):
 
 
 @app.get("/info/{symbol}", response_model=Dict[str, InfoModel])
-def get_info(symbol: str, close_date: Optional[str] = ""):
+def get_info(symbol: str, close_date: Optional[str] = None):
     response = {}
     end_date = None
-    if close_date is not None:
+    if close_date is not None and close_date != "":
         try:
             close_date = datetime.strptime(close_date, '%Y-%m-%d')
         except ValueError:
@@ -46,6 +46,7 @@ def get_info(symbol: str, close_date: Optional[str] = ""):
             info = ticker.info
             close = info.get("previousClose", None)
             if end_date is not None:
+                print(end_date)
                 start_date = (close_date - timedelta(days=3)).date()
                 closes = ticker.history(start=start_date, end=end_date, interval="1d")["Close"].to_dict()
                 closes_time_stamps = closes.keys()
