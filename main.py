@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 from fastapi import FastAPI, HTTPException
 from datetime import date, timedelta, datetime
 from pydantic import BaseModel
@@ -22,6 +22,50 @@ def get_root():
     }
 
 
+def process_ticker(ticker: Any, ticker_key: str, end_date: Optional[datetime], close_date: datetime):
+    if ticker_key == "SYMBOL":
+        return None
+    info = ticker.info
+    close = info.get("previousClose", None)
+    if end_date is not None:
+        start_date = close_date - timedelta(days=3)
+        closes_data = ticker.history(start=start_date, end=end_date, interval="1d")["Close"]
+        closes_dict = closes_data.to_dict()
+        closes_time_stamps = closes_dict.keys()
+        if len(closes_time_stamps) > 0:
+            last_close = closes_dict[max(closes_time_stamps)]
+            close = last_close
+    if close is None:
+        return None
+    logo_url =  info.get("logo_url", None)
+    if logo_url == "":
+        logo_url = None
+    return {
+        "logo_url": logo_url,
+        "short_name": info.get("shortName", None),
+        "long_name": info.get("longName", None),
+        "close": close,
+        "currency": info.get("currency", None),
+        "symbol": ticker_key
+    }
+
+
+def get_info_response(symbol: str, close_date: Optional[str]):
+    response = {}
+    end_date = None
+    if close_date is not None and close_date != "":
+        try:
+            close_date = datetime.strptime(close_date, '%Y-%m-%d')
+        except ValueError:
+            close_date = datetime.today()
+        end_date = close_date
+    for (ticker_key, ticker) in yfinance.Tickers(symbol).tickers.items():
+        response_info = process_ticker(ticker=ticker, ticker_key=ticker_key, end_date=end_date, close_date=close_date)
+        if response_info is not None:
+            response[ticker_key] = response_info
+    return response
+
+
 class InfoModel(BaseModel):
     logo_url: Optional[str]
     short_name: Optional[str]
@@ -33,39 +77,7 @@ class InfoModel(BaseModel):
 
 @app.get("/info/{symbol}", response_model=Dict[str, InfoModel])
 def get_info(symbol: str, close_date: Optional[str] = None):
-    response = {}
-    end_date = None
-    if close_date is not None and close_date != "":
-        try:
-            close_date = datetime.strptime(close_date, '%Y-%m-%d')
-        except ValueError:
-            close_date = datetime.date()
-        end_date = close_date
-    for (ticker_key, ticker) in yfinance.Tickers(symbol).tickers.items():
-        if ticker_key != "SYMBOL":
-            info = ticker.info
-            close = info.get("previousClose", None)
-            if end_date is not None:
-                print(end_date)
-                start_date = (close_date - timedelta(days=3)).date()
-                closes = ticker.history(start=start_date, end=end_date, interval="1d")["Close"].to_dict()
-                closes_time_stamps = closes.keys()
-                if len(closes_time_stamps) > 0:
-                    last_close = closes[max(closes_time_stamps)]
-                    close = last_close
-            if close is not None:
-                logo_url =  info.get("logo_url", None)
-                if logo_url == "":
-                    logo_url = None
-                response_info = {
-                    "logo_url": logo_url,
-                    "short_name": info.get("shortName", None),
-                    "long_name": info.get("longName", None),
-                    "close": close,
-                    "currency": info.get("currency", None),
-                    "symbol": ticker_key
-                }
-                response[ticker_key] = response_info
+    response = get_info_response(symbol=symbol, close_date=close_date)
     if len(response) == 0:
         raise HTTPException(status_code=404, detail="No items found")
     return response
