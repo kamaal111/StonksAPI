@@ -26,9 +26,9 @@ class InfoModel(BaseModel):
     logo_url: Optional[str]
     short_name: Optional[str]
     long_name: Optional[str]
-    previous_close: Optional[float]
+    previous_close: float
     currency: Optional[str]
-    symbol: Optional[str]
+    symbol: str
 
 
 @app.get("/info/{symbol}", response_model=Dict[str, InfoModel])
@@ -48,7 +48,7 @@ def get_info(symbol: str):
                     "long_name": info.get("longName", None),
                     "previous_close": previous_close,
                     "currency": info.get("currency", None),
-                    "symbol": info.get("symbol", None)
+                    "symbol": ticker_key
                 }
                 response[ticker_key] = response_info
     if len(response) == 0:
