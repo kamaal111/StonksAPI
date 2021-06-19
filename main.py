@@ -26,19 +26,26 @@ class InfoModel(BaseModel):
     logo_url: Optional[str]
     short_name: Optional[str]
     long_name: Optional[str]
-    previous_close: float
+    close: float
     currency: Optional[str]
     symbol: str
 
 
 @app.get("/info/{symbol}", response_model=Dict[str, InfoModel])
-def get_info(symbol: str):
+def get_info(symbol: str, close_date: Optional[str] = ""):
     response = {}
+    end_date = None
+    if close_date is not None:
+        try:
+            datetime.strptime(close_date, '%Y-%m-%d')
+        except ValueError:
+            close_date = datetime.today() - timedelta(days=3)
+        end_date = date.today()
     for (ticker_key, ticker) in yfinance.Tickers(symbol).tickers.items():
         if ticker_key != "SYMBOL":
             info = ticker.info
-            previous_close = info.get("previousClose", None)
-            if previous_close is not None:
+            close = info.get("close", None)
+            if close is not None:
                 logo_url =  info.get("logo_url", None)
                 if logo_url == "":
                     logo_url = None
@@ -46,7 +53,7 @@ def get_info(symbol: str):
                     "logo_url": logo_url,
                     "short_name": info.get("shortName", None),
                     "long_name": info.get("longName", None),
-                    "previous_close": previous_close,
+                    "close": close,
                     "currency": info.get("currency", None),
                     "symbol": ticker_key
                 }
