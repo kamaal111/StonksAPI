@@ -1,0 +1,29 @@
+{
+	"name": "${localWorkspaceFolderBasename}",
+	"dockerComposeFile": [
+		"docker-compose.code.yml"
+	],
+	"service": "code",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"postCreateCommand": "just bootstrap && just .devcontainer/setup-dev-container && exit 0",
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.defaultProfile.linux": "zsh",
+				"python.defaultInterpreterPath": "/workspaces/${localWorkspaceFolderBasename}/.venv/bin/python"
+			},
+			"extensions": [
+				"skellock.just",
+				"streetsidesoftware.code-spell-checker",
+				"ms-python.python",
+				"bungcip.better-toml",
+				"charliermarsh.ruff"
+			]
+		}
+	},
+	"features": {
+		"ghcr.io/guiyomh/features/just:0": {},
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+	},
+	"forwardPorts": []
+}

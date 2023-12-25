@@ -1,0 +1,4 @@
+setup-dev-container:
+    #!/bin/zsh
+
+    cp -f .zshrc ~/.zshrc

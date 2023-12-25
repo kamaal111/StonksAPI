@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "stonksapi"
+version = "0.1.0"
+description = ""
+authors = ["Kamaal Farah <kamaal.f1@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.105.0"
+uvicorn = {extras = ["standard"], version = "^0.25.0"}
+yfinance = "^0.2.33"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
