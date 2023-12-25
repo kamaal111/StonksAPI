@@ -16,8 +16,10 @@
 				"skellock.just",
 				"streetsidesoftware.code-spell-checker",
 				"ms-python.python",
-				"bungcip.better-toml",
-				"charliermarsh.ruff"
+				"tamasfe.even-better-toml",
+				"charliermarsh.ruff",
+				"ms-python.black-formatter",
+				"eamodio.gitlens"
 			]
 		}
 	},

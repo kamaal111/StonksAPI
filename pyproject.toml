@@ -8,9 +8,13 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.12"
 fastapi = "^0.105.0"
-uvicorn = {extras = ["standard"], version = "^0.25.0"}
+uvicorn = { extras = ["standard"], version = "^0.25.0" }
 yfinance = "^0.2.33"
 
+[tool.poetry.group.dev.dependencies]
+black = "^23.12.1"
+ruff = "^0.1.9"
+pre-commit = "^3.6.0"
 
 [build-system]
 requires = ["poetry-core"]
