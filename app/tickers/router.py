@@ -1,29 +1,19 @@
 from datetime import date, datetime, timedelta
 from fastapi import APIRouter, HTTPException, status
-import yfinance
+from pydantic import StringConstraints
+from pydantic.functional_validators import BeforeValidator
+from typing import Annotated
 
-from app.exceptions.exceptions import InvalidQueryParamValueException
 from app.exceptions.responses import ExceptionResponse
 from app.tickers.responses import InfoResponse
+from app.tickers.services.yahoo_finances import YahooFinances
+from app.tickers.validators import (
+    is_valid_history_interval,
+    valid_date_or_none,
+    validate_query_param,
+)
 
 router = APIRouter(tags=["tickers"], prefix="/tickers")
-
-
-SUPPORTED_INTERVALS = [
-    "1m",
-    "2m",
-    "5m",
-    "15m",
-    "30m",
-    "60m",
-    "90m",
-    "1h",
-    "1d",
-    "5d",
-    "1wk",
-    "1mo",
-    "3mo",
-]
 
 
 @router.get(
@@ -33,54 +23,51 @@ SUPPORTED_INTERVALS = [
         status.HTTP_400_BAD_REQUEST: {"model": ExceptionResponse},
     },
 )
-def get_info(symbol: str, close_date: str | None = None) -> InfoResponse:
-    end_date = None
-    if close_date:
-        try:
-            close_date = datetime.strptime(close_date, "%Y-%m-%d")
-        except ValueError:
-            raise InvalidQueryParamValueException(name="close_date", value=close_date)
-        end_date = close_date
-
-    final_close_date = None
-    for ticker_key, ticker in yfinance.Tickers(symbol).tickers.items():
-        if ticker_key != symbol:
-            continue
-
-        info = ticker.info
-        close = info.get("previousClose", None)
-        if end_date:
-            start_date = close_date - timedelta(days=3)
-            closes_data = ticker.history(start=start_date, end=end_date, interval="1d")[
-                "Close"
-            ]
-            closes_dict = closes_data.to_dict()
-            closes_time_stamps = closes_dict.keys()
-            final_close_date = max(closes_time_stamps)
-            if len(closes_time_stamps) > 0:
-                last_close = closes_dict[final_close_date]
-                close = last_close
-
-        if close is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No close found for {symbol}",
-            )
-        assert final_close_date is not None
-
-        return InfoResponse(
-            name=info.get("longName", None),
-            close=close,
-            currency=info.get("currency", None),
-            symbol=symbol,
-            close_date=datetime.utcfromtimestamp(
-                final_close_date.value / 1_000_000_000
-            ).isoformat(),
+def get_info(
+    symbol: Annotated[str, StringConstraints(min_length=1)],
+    close_date: Annotated[
+        datetime,
+        BeforeValidator(validate_query_param("close_date", valid_date_or_none)),
+    ] = None,
+) -> InfoResponse:
+    formatted_final_close_date = None
+    ticker = YahooFinances.get_ticker(symbol=symbol)
+    if not ticker:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No information found for {symbol}",
         )
 
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"No information found for {symbol}",
+    info = ticker.info
+    close = info.get("previousClose", None)
+    if close_date:
+        start_date = close_date - timedelta(days=3)
+        closes_data = ticker.history(start=start_date, end=close_date, interval="1d")[
+            "Close"
+        ]
+        closes_dict = closes_data.to_dict()
+        closes_time_stamps = closes_dict.keys()
+        final_close_date = max(closes_time_stamps)
+        if len(closes_time_stamps) > 0:
+            last_close = closes_dict[final_close_date]
+            close = last_close
+
+        formatted_final_close_date = datetime.utcfromtimestamp(
+            final_close_date.value / 1_000_000_000
+        ).isoformat()
+
+    if close is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No close found for {symbol}",
+        )
+
+    return InfoResponse(
+        name=info.get("longName", None),
+        close=close,
+        currency=info.get("currency", None),
+        symbol=symbol,
+        close_date=formatted_final_close_date,
     )
 
 
@@ -92,37 +79,31 @@ def get_info(symbol: str, close_date: str | None = None) -> InfoResponse:
     },
 )
 def get_close(
-    symbol: str, interval: str = None, start_date: str = None
+    symbol: str,
+    interval: Annotated[
+        str,
+        BeforeValidator(validate_query_param("interval", is_valid_history_interval)),
+    ] = None,
+    start_date: Annotated[
+        datetime,
+        BeforeValidator(validate_query_param("start_date", valid_date_or_none)),
+    ] = None,
 ) -> dict[str, float]:
-    try:
-        datetime.strptime(start_date, "%Y-%m-%d")
-    except ValueError:
-        raise InvalidQueryParamValueException(name="start_date", value=start_date)
-    end_date = date.today()
+    ticker = YahooFinances.get_ticker(symbol=symbol)
+    if not ticker:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No information found for {symbol}",
+        )
 
-    if interval is None:
-        interval = "1d"
+    close_series = ticker.history(
+        start=start_date, end=date.today(), interval=interval
+    )["Close"]
 
-    if interval not in SUPPORTED_INTERVALS:
-        raise InvalidQueryParamValueException(name="interval", value=interval)
-
-    for ticker_key, ticker in yfinance.Tickers(symbol).tickers.items():
-        if ticker_key != symbol:
-            continue
-
-        close_series = ticker.history(
-            start=start_date, end=end_date, interval=interval
-        )["Close"]
-
-        response = {}
-        for close_date, close_value in close_series.to_dict().items():
-            close_date = datetime.utcfromtimestamp(
-                close_date.value / 1_000_000_000
-            ).isoformat()
-            response[close_date] = close_value
-        return response
-
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"No information found for {symbol}",
-    )
+    response = {}
+    for close_date, close_value in close_series.to_dict().items():
+        close_date = datetime.utcfromtimestamp(
+            close_date.value / 1_000_000_000
+        ).isoformat()
+        response[close_date] = close_value
+    return response
