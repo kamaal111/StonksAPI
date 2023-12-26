@@ -1,8 +1,18 @@
 set export
 
 VIRTUAL_ENVIRONMENT := ".venv"
+CONTAINER_NAME := "stonks-api"
+PORT := "8000"
 
-run:
+build-run: build run
+
+run: stop-and-remove-container
+    docker run -dp $PORT:$PORT --name $CONTAINER_NAME -e PORT=$PORT $CONTAINER_NAME
+
+build:
+    docker build -t $CONTAINER_NAME .
+
+run-dev:
     #!/bin/zsh
 
     just install-python-packages
@@ -10,6 +20,11 @@ run:
     uvicorn app.main:app --reload
 
 bootstrap: setup-python-environment
+
+[private]
+stop-and-remove-container:
+    docker stop $CONTAINER_NAME || true
+    docker rm $CONTAINER_NAME || true
 
 [private]
 setup-python-environment:
