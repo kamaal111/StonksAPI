@@ -1,5 +1,6 @@
 FROM python:3.12-slim-bookworm AS builder
 
+RUN pip install --upgrade pip
 RUN pip install poetry
 RUN python -m venv .venv
 RUN . .venv/bin/activate

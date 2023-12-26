@@ -46,7 +46,7 @@ def get_info(
 def get_close(
     symbol: str,
     interval: Annotated[
-        str,
+        str | None,
         BeforeValidator(validate_query_param("interval", is_valid_history_interval)),
     ] = None,
     start_date: Annotated[

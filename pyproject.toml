@@ -10,6 +10,7 @@ python = "^3.12"
 fastapi = "^0.105.0"
 uvicorn = { extras = ["standard"], version = "^0.25.0" }
 yfinance = "^0.2.33"
+pandas = "^2.1.4"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.12.1"

@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
-from app.tickers.exceptions import NoCloseDataFound, TickerNotFoundException
-from app.tickers.responses import InfoResponse
 
 from app.tickers.services.yahoo_finances import YahooFinances
+from app.tickers.exceptions import NoCloseDataFound, TickerNotFoundException
+from app.tickers.responses import InfoResponse
 
 
 class GetInfoController:
@@ -11,40 +11,40 @@ class GetInfoController:
 
     @staticmethod
     def get(symbol: str, date: datetime | None):
-        ticker = YahooFinances.get_ticker(symbol=symbol)
-        if not ticker:
-            raise TickerNotFoundException(symbol=symbol)
+        yahoo_finances = YahooFinances()
+        name = yahoo_finances.get_long_name(symbol=symbol)
+        currency = yahoo_finances.get_currency(symbol=symbol)
+        if not date:
+            close = yahoo_finances.get_previous_close(symbol=symbol)
+            if not close:
+                raise TickerNotFoundException(symbol=symbol)
 
-        try:
-            info = ticker.info
-        except Exception:
-            raise TickerNotFoundException(symbol=symbol)
+            return InfoResponse(
+                name=name,
+                close=close,
+                currency=currency,
+                symbol=symbol,
+                close_date=None,
+            )
 
-        if date:
-            start_date = date - timedelta(days=3)
-            closes_data = ticker.history(start=start_date, end=date, interval="1d")[
-                "Close"
-            ]
-            closes_dict = closes_data.to_dict()
-            closes_time_stamps = closes_dict.keys()
-            final_close_date = max(closes_time_stamps)
-            if len(closes_time_stamps) > 0:
-                last_close = closes_dict[final_close_date]
-                close = last_close
-
-            formatted_final_close_date = datetime.utcfromtimestamp(
-                final_close_date.value / 1_000_000_000
-            ).isoformat()
-        else:
-            close = info.get("previousClose", None)
-
-        if close is None:
+        # start date 3 days ago to include weekdays in case of the date being a Sunday
+        start_date = date - timedelta(days=3)
+        closes = yahoo_finances.get_closes(
+            symbol=symbol,
+            start_date=start_date,
+            end_date=date,
+            interval="1d",
+        )
+        if closes is None or len(closes) == 0:
             raise NoCloseDataFound(symbol=symbol)
 
+        close_date = sorted(closes.keys())[-1]
+        close: float = closes[close_date]
+
         return InfoResponse(
-            name=info.get("longName", None),
+            name=name,
             close=close,
-            currency=info.get("currency", None),
+            currency=currency,
             symbol=symbol,
-            close_date=formatted_final_close_date,
+            close_date=close_date,
         )
