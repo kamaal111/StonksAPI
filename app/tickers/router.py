@@ -1,13 +1,13 @@
-from datetime import date as datetime_date, datetime
-from fastapi import APIRouter, HTTPException, status
+from datetime import datetime
+from fastapi import APIRouter, status
 from pydantic import StringConstraints
 from pydantic.functional_validators import BeforeValidator
 from typing import Annotated
 
 from app.exceptions.responses import ExceptionResponse
+from app.tickers.controllers.get_close import GetCloseController
 from app.tickers.controllers.get_info import GetInfoController
 from app.tickers.responses import InfoResponse
-from app.tickers.services.yahoo_finances import YahooFinances
 from app.tickers.validators import (
     is_valid_history_interval,
     valid_date_or_none,
@@ -41,6 +41,7 @@ def get_info(
         status.HTTP_404_NOT_FOUND: {"model": ExceptionResponse},
         status.HTTP_400_BAD_REQUEST: {"model": ExceptionResponse},
     },
+    response_model=dict[str, float],
 )
 def get_close(
     symbol: str,
@@ -52,22 +53,7 @@ def get_close(
         datetime | None,
         BeforeValidator(validate_query_param("start_date", valid_date_or_none)),
     ] = None,
-) -> dict[str, float]:
-    ticker = YahooFinances.get_ticker(symbol=symbol)
-    if not ticker:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No information found for {symbol}",
-        )
-
-    close_series = ticker.history(
-        start=start_date, end=datetime_date.today(), interval=interval
-    )["Close"]
-
-    response = {}
-    for close_date, close_value in close_series.to_dict().items():
-        close_date = datetime.utcfromtimestamp(
-            close_date.value / 1_000_000_000
-        ).isoformat()
-        response[close_date] = close_value
-    return response
+):
+    return GetCloseController.get(
+        symbol=symbol, interval=interval, start_date=start_date
+    )
