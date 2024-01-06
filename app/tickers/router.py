@@ -5,7 +5,7 @@ from pydantic.functional_validators import BeforeValidator
 from typing import Annotated
 
 from app.exceptions.responses import ExceptionResponse
-from app.tickers.controllers.get_close import GetCloseController
+from app.tickers.controllers.get_closes import GetClosesController
 from app.tickers.controllers.get_info import GetInfoController
 from app.tickers.responses import InfoResponse
 from app.tickers.validators import (
@@ -36,7 +36,7 @@ def get_info(
 
 
 @router.get(
-    "/close/{symbol}",
+    "/closes/{symbol}",
     responses={
         status.HTTP_404_NOT_FOUND: {"model": ExceptionResponse},
         status.HTTP_400_BAD_REQUEST: {"model": ExceptionResponse},
@@ -54,6 +54,6 @@ def get_close(
         BeforeValidator(validate_query_param("start_date", valid_date_or_none)),
     ] = None,
 ):
-    return GetCloseController.get(
+    return GetClosesController.get(
         symbol=symbol, interval=interval, start_date=start_date
     )

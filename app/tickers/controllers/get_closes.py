@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from app.tickers.configuration import SupportedIntervals
 
 
-class GetCloseController:
+class GetClosesController:
     def __init__(self) -> None:
         pass
 
