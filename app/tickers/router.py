@@ -53,7 +53,11 @@ def get_close(
         datetime | None,
         BeforeValidator(validate_query_param("start_date", valid_date_or_none)),
     ] = None,
+    end_date: Annotated[
+        datetime | None,
+        BeforeValidator(validate_query_param("end_date", valid_date_or_none)),
+    ] = None,
 ):
     return GetClosesController.get(
-        symbol=symbol, interval=interval, start_date=start_date
+        symbol=symbol, interval=interval, start_date=start_date, end_date=end_date
     )

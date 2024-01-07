@@ -19,12 +19,13 @@ class GetClosesController:
         symbol: str,
         interval: Optional["SupportedIntervals"],
         start_date: datetime | None,
+        end_date: datetime | None,
     ):
         yahoo_finances = YahooFinances()
         closes = yahoo_finances.get_closes(
             symbol=symbol,
             start_date=start_date,
-            end_date=datetime.now(),
+            end_date=end_date or datetime.now(),
             interval=interval or DEFAULT_SUPPORTED_INTERVAL,
         )
         if closes is None:
