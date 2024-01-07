@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from yfinance import Tickers
 
-from datetime import datetime, date as datetime_date
+from datetime import datetime
 
 
 if TYPE_CHECKING:
@@ -12,9 +12,6 @@ if TYPE_CHECKING:
     from yfinance import Ticker
 
     from app.tickers.configuration import SupportedIntervals
-
-
-Date = datetime | datetime_date
 
 
 @dataclass
@@ -59,8 +56,8 @@ class YahooFinances:
     def get_closes(
         self,
         symbol: str,
-        start_date: Date | None,
-        end_date: Date,
+        start_date: datetime | None,
+        end_date: datetime,
         interval: "SupportedIntervals",
     ):
         return self.__get_history_values(
@@ -78,8 +75,8 @@ class YahooFinances:
     def __get_history(
         self,
         symbol: str,
-        start_date: Date | None,
-        end_date: Date,
+        start_date: datetime | None,
+        end_date: datetime,
         interval: "SupportedIntervals",
     ):
         request_ticker = self.__get_request_ticker(symbol=symbol)
@@ -104,7 +101,10 @@ class YahooFinances:
         return history
 
     def __make_history_key(
-        self, start_date: Date | None, end_date: Date, interval: "SupportedIntervals"
+        self,
+        start_date: datetime | None,
+        end_date: datetime,
+        interval: "SupportedIntervals",
     ):
         start_date_key = start_date.timestamp() if start_date is not None else "None"
         return f"{start_date_key}-{end_date.timestamp()}-{interval}"
@@ -112,8 +112,8 @@ class YahooFinances:
     def __get_history_values(
         self,
         symbol: str,
-        start_date: Date | None,
-        end_date: Date,
+        start_date: datetime | None,
+        end_date: datetime,
         interval: "SupportedIntervals",
         key: str,
     ):

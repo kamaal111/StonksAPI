@@ -1,4 +1,4 @@
-from datetime import date as datetime_date, datetime
+from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 from app.tickers.configuration import DEFAULT_SUPPORTED_INTERVAL
 from app.tickers.exceptions import NoCloseDataFound
@@ -24,7 +24,7 @@ class GetClosesController:
         closes = yahoo_finances.get_closes(
             symbol=symbol,
             start_date=start_date,
-            end_date=datetime_date.today(),
+            end_date=datetime.now(),
             interval=interval or DEFAULT_SUPPORTED_INTERVAL,
         )
         if closes is None:
