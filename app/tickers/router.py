@@ -7,7 +7,7 @@ from typing import Annotated
 from app.exceptions.responses import ExceptionResponse
 from app.tickers.controllers.get_closes import GetClosesController
 from app.tickers.controllers.get_info import GetInfoController
-from app.tickers.responses import InfoResponse
+from app.tickers.responses import ClosesResponse, InfoResponse
 from app.tickers.validators import (
     is_valid_history_interval,
     valid_date_or_none,
@@ -41,7 +41,7 @@ def get_info(
         status.HTTP_404_NOT_FOUND: {"model": ExceptionResponse},
         status.HTTP_400_BAD_REQUEST: {"model": ExceptionResponse},
     },
-    response_model=dict[str, float],
+    response_model=ClosesResponse,
 )
 def get_close(
     symbol: str,

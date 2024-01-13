@@ -14,6 +14,9 @@ class GetInfoController:
         yahoo_finances = YahooFinances()
         name = yahoo_finances.get_long_name(symbol=symbol)
         currency = yahoo_finances.get_currency(symbol=symbol)
+        if not currency:
+            raise TickerNotFoundException(symbol=symbol)
+
         if not date:
             close = yahoo_finances.get_previous_close(symbol=symbol)
             if not close:

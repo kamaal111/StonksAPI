@@ -43,10 +43,10 @@ class YahooFinances:
         self.request_tickers[symbol].info = info
         return info
 
-    def get_long_name(self, symbol: str):
+    def get_long_name(self, symbol: str) -> str | None:
         return self.__get_info_value(symbol=symbol, key="longName")
 
-    def get_currency(self, symbol: str):
+    def get_currency(self, symbol: str) -> str | None:
         return self.__get_info_value(symbol=symbol, key="currency")
 
     def get_previous_close(self, symbol: str) -> float | None:

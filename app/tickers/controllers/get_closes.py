@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 from app.tickers.configuration import DEFAULT_SUPPORTED_INTERVAL
 from app.tickers.exceptions import NoCloseDataFound
+from app.tickers.responses import ClosesResponse
 
 from app.tickers.services.yahoo_finances import YahooFinances
 
@@ -22,6 +23,10 @@ class GetClosesController:
         end_date: datetime | None,
     ):
         yahoo_finances = YahooFinances()
+        currency = yahoo_finances.get_currency(symbol=symbol)
+        if not currency:
+            raise NoCloseDataFound(symbol=symbol)
+
         closes = yahoo_finances.get_closes(
             symbol=symbol,
             start_date=start_date,
@@ -31,4 +36,4 @@ class GetClosesController:
         if closes is None:
             raise NoCloseDataFound(symbol=symbol)
 
-        return closes
+        return ClosesResponse(closes=closes, currency=currency)
