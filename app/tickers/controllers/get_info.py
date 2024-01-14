@@ -33,11 +33,11 @@ class GetInfoController:
         # start date 3 days ago to include weekdays in case of the date being a Sunday
         start_date = date - timedelta(days=3)
         closes = yahoo_finances.get_closes(
-            symbol=symbol,
+            symbols=[symbol],
             start_date=start_date,
             end_date=date,
             interval="1d",
-        )
+        ).get(symbol)
         if closes is None or len(closes) == 0:
             raise NoCloseDataFound(symbol=symbol)
 

@@ -36,15 +36,15 @@ def get_info(
 
 
 @router.get(
-    "/closes/{symbol}",
+    "/closes",
     responses={
         status.HTTP_404_NOT_FOUND: {"model": ExceptionResponse},
         status.HTTP_400_BAD_REQUEST: {"model": ExceptionResponse},
     },
-    response_model=ClosesResponse,
+    response_model=dict[str, ClosesResponse],
 )
 def get_close(
-    symbol: str,
+    symbols: str,
     interval: Annotated[
         str | None,
         BeforeValidator(validate_query_param("interval", is_valid_history_interval)),
@@ -59,5 +59,5 @@ def get_close(
     ] = None,
 ):
     return GetClosesController.get(
-        symbol=symbol, interval=interval, start_date=start_date, end_date=end_date
+        symbols=symbols, interval=interval, start_date=start_date, end_date=end_date
     )

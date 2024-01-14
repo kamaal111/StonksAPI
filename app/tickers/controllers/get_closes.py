@@ -17,23 +17,32 @@ class GetClosesController:
 
     @staticmethod
     def get(
-        symbol: str,
+        symbols: str,
         interval: Optional["SupportedIntervals"],
         start_date: datetime | None,
         end_date: datetime | None,
     ):
+        symbols_list = symbols.split(",")
         yahoo_finances = YahooFinances()
-        currency = yahoo_finances.get_currency(symbol=symbol)
-        if not currency:
-            raise NoCloseDataFound(symbol=symbol)
+        currencies = yahoo_finances.get_currencies(symbols=symbols_list)
+        if currencies is None or len(currencies) == 0:
+            raise NoCloseDataFound(symbol=symbols)
 
         closes = yahoo_finances.get_closes(
-            symbol=symbol,
+            symbols=symbols_list,
             start_date=start_date,
             end_date=end_date or datetime.now(),
             interval=interval or DEFAULT_SUPPORTED_INTERVAL,
         )
-        if closes is None:
-            raise NoCloseDataFound(symbol=symbol)
+        if len(closes) == 0:
+            raise NoCloseDataFound(symbol=symbols)
 
-        return ClosesResponse(closes=closes, currency=currency)
+        response: dict[str, ClosesResponse] = {}
+        for symbol in symbols_list:
+            try:
+                response[symbol] = ClosesResponse(
+                    closes=closes[symbol], currency=currencies[symbol]
+                )
+            except KeyError:
+                continue
+        return response

@@ -27,78 +27,88 @@ class YahooFinances:
     def __init__(self) -> None:
         self.request_tickers = {}
 
-    def get_info(self, symbol: str):
-        request_ticker = self.__get_request_ticker(symbol=symbol)
-        if not request_ticker:
-            return None
-
-        if info := request_ticker.info:
-            return info
-
-        try:
-            info = request_ticker.ticker.info
-        except Exception:
-            return None
-
-        self.request_tickers[symbol].info = info
-        return info
-
     def get_long_name(self, symbol: str) -> str | None:
-        return self.__get_info_value(symbol=symbol, key="longName")
+        return self.__get_info_values(symbols=[symbol], key="longName").get(symbol)
 
     def get_currency(self, symbol: str) -> str | None:
-        return self.__get_info_value(symbol=symbol, key="currency")
+        return self.__get_info_values(symbols=[symbol], key="currency").get(symbol)
+
+    def get_currencies(self, symbols: list[str]) -> dict[str, str] | None:
+        return self.__get_info_values(symbols=symbols, key="currency")
 
     def get_previous_close(self, symbol: str) -> float | None:
-        if info := self.get_info(symbol=symbol):
-            return info.get("previousClose", None)
+        return self.__get_infos(symbols=[symbol]).get(symbol, {}).get("previousClose")
 
     def get_closes(
         self,
-        symbol: str,
+        symbols: list[str],
         start_date: datetime | None,
         end_date: datetime,
         interval: "SupportedIntervals",
     ):
         return self.__get_history_values(
-            symbol=symbol,
+            symbols=symbols,
             start_date=start_date,
             end_date=end_date,
             interval=interval,
             key="Close",
         )
 
-    def __get_info_value(self, symbol: str, key: str):
-        if info := self.get_info(symbol=symbol):
-            return info.get(key)
+    def __get_infos(self, symbols: list[str]):
+        request_tickers = self.__get_request_tickers(symbols=symbols)
+        infos: dict[str, dict] = {}
+        for symbol, request_ticker in request_tickers.items():
+            if info := request_ticker.info:
+                infos[symbol] = info
+                continue
 
-    def __get_history(
+            try:
+                info = request_ticker.ticker.info
+            except Exception:
+                continue
+
+            self.request_tickers[symbol].info = info
+            infos[symbol] = info
+
+        return infos
+
+    def __get_info_values(self, symbols: list[str], key: str):
+        values: dict[str, Any] = {}
+        self.__get_infos(symbols=symbols)
+        for symbol, info in self.__get_infos(symbols=symbols).items():
+            if value := info.get(key):
+                values[symbol] = value
+        return values
+
+    def __get_histories(
         self,
-        symbol: str,
+        symbols: list[str],
         start_date: datetime | None,
         end_date: datetime,
         interval: "SupportedIntervals",
     ):
-        request_ticker = self.__get_request_ticker(symbol=symbol)
-        if not request_ticker:
-            return None
+        request_tickers = self.__get_request_tickers(symbols=symbols)
+        histories: dict[str, "DataFrame"] = {}
+        for symbol, request_ticker in request_tickers.items():
+            history_key = self.__make_history_key(
+                start_date=start_date, end_date=end_date, interval=interval
+            )
+            if (request_ticker_history := request_ticker.history) and (
+                history := request_ticker_history.get(history_key)
+            ):
+                histories[symbol] = history
+                continue
 
-        history_key = self.__make_history_key(
-            start_date=start_date, end_date=end_date, interval=interval
-        )
-        if (histories := request_ticker.history) and (
-            history := histories.get(history_key)
-        ):
-            return history
+            history = request_ticker.ticker.history(
+                start=start_date, end=end_date, interval=interval
+            )
+            histories[symbol] = history
+            if self.request_tickers[symbol].history is None:
+                self.request_tickers[symbol].history = {history_key: history}
+            else:
+                self.request_tickers[symbol].history[history_key] = history
 
-        history = request_ticker.ticker.history(
-            start=start_date, end=end_date, interval=interval
-        )
-        if self.request_tickers[symbol].history is None:
-            self.request_tickers[symbol].history = {history_key: history}
-        else:
-            self.request_tickers[symbol].history[history_key] = history
-        return history
+        return histories
 
     def __make_history_key(
         self,
@@ -111,38 +121,53 @@ class YahooFinances:
 
     def __get_history_values(
         self,
-        symbol: str,
+        symbols: list[str],
         start_date: datetime | None,
         end_date: datetime,
         interval: "SupportedIntervals",
         key: str,
     ):
-        history = self.__get_history(
-            symbol=symbol, start_date=start_date, end_date=end_date, interval=interval
+        histories = self.__get_histories(
+            symbols=symbols,
+            start_date=start_date,
+            end_date=end_date,
+            interval=interval,
         )
-        if history is None:
-            return None
+        history_values: dict[str, dict[str, Any]] = {}
+        for symbol, history in histories.items():
+            series = history[key]
+            if series.empty:
+                continue
 
-        close_series = history[key]
-        if close_series.empty:
-            return None
+            values_dict: dict[str, Any] = {}
+            for timestamp, value in series.items():
+                timestamp_datetime = datetime.utcfromtimestamp(
+                    timestamp.value / 1_000_000_000
+                ).isoformat()
+                values_dict[timestamp_datetime] = value
 
-        closes: dict[str, Any] = {}
-        for close_date, close_value in close_series.items():
-            close_date = datetime.utcfromtimestamp(
-                close_date.value / 1_000_000_000
-            ).isoformat()
-            closes[close_date] = close_value
+            history_values[symbol] = values_dict
 
-        return closes
+        return history_values
 
-    def __get_request_ticker(self, symbol: str):
-        if request_ticker := self.request_tickers.get(symbol):
-            return request_ticker
+    def __get_request_tickers(self, symbols: list[str]):
+        cached_tickers: dict[str, RequestTicker] = {}
+        symbols_set = set(symbols)
+        for symbol in symbols_set:
+            if request_ticker := self.request_tickers.get(symbol):
+                cached_tickers[symbol] = request_ticker
 
-        for ticker_key, ticker in Tickers(symbol).tickers.items():
-            self.request_tickers[ticker_key] = RequestTicker(
-                ticker=ticker, info=None, history=None
-            )
+        cached_symbols = cached_tickers.keys()
+        remaining_symbols = list(
+            filter(lambda symbol: symbol not in cached_symbols, symbols_set)
+        )
+        if len(remaining_symbols) == 0:
+            return cached_tickers
 
-        return self.request_tickers.get(symbol)
+        request_tickers = cached_tickers
+        for ticker_key, ticker in Tickers(",".join(remaining_symbols)).tickers.items():
+            request_ticker = RequestTicker(ticker=ticker, info=None, history=None)
+            self.request_tickers[ticker_key] = request_ticker
+            request_tickers[ticker_key] = request_ticker
+
+        return request_tickers
