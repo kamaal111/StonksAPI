@@ -18,21 +18,21 @@ router = APIRouter(tags=["tickers"], prefix="/tickers")
 
 
 @router.get(
-    "/info/{symbol}",
+    "/info",
     responses={
         status.HTTP_404_NOT_FOUND: {"model": ExceptionResponse},
         status.HTTP_400_BAD_REQUEST: {"model": ExceptionResponse},
     },
-    response_model=InfoResponse,
+    response_model=dict[str, InfoResponse],
 )
 def get_info(
-    symbol: Annotated[str, StringConstraints(min_length=1)],
+    symbols: Annotated[str, StringConstraints(min_length=1)],
     date: Annotated[
         datetime | None,
         BeforeValidator(validate_query_param("date", valid_date_or_none)),
     ] = None,
 ):
-    return GetInfoController.get(symbol=symbol, date=date)
+    return GetInfoController.get(symbols=symbols, date=date)
 
 
 @router.get(
@@ -44,7 +44,7 @@ def get_info(
     response_model=dict[str, ClosesResponse],
 )
 def get_close(
-    symbols: str,
+    symbols: Annotated[str, StringConstraints(min_length=1)],
     interval: Annotated[
         str | None,
         BeforeValidator(validate_query_param("interval", is_valid_history_interval)),

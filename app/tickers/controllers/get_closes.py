@@ -22,26 +22,23 @@ class GetClosesController:
         start_date: datetime | None,
         end_date: datetime | None,
     ):
-        symbols_list = symbols.split(",")
         yahoo_finances = YahooFinances()
-        currencies = yahoo_finances.get_currencies(symbols=symbols_list)
-        if currencies is None or len(currencies) == 0:
-            raise NoCloseDataFound(symbol=symbols)
-
+        symbols_list = symbols.split(",")
         closes = yahoo_finances.get_closes(
             symbols=symbols_list,
             start_date=start_date,
             end_date=end_date or datetime.now(),
             interval=interval or DEFAULT_SUPPORTED_INTERVAL,
         )
-        if len(closes) == 0:
-            raise NoCloseDataFound(symbol=symbols)
-
         response: dict[str, ClosesResponse] = {}
         for symbol in symbols_list:
+            currency = yahoo_finances.get_currency(symbol=symbol)
+            if currency is None:
+                raise NoCloseDataFound(symbol=symbols)
+
             try:
                 response[symbol] = ClosesResponse(
-                    closes=closes[symbol], currency=currencies[symbol]
+                    closes=closes[symbol], currency=currency
                 )
             except KeyError:
                 continue

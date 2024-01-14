@@ -5,7 +5,6 @@ class InfoResponse(BaseModel):
     name: str | None
     close: float
     currency: str
-    symbol: str
     close_date: str | None
 
 

@@ -33,11 +33,13 @@ class YahooFinances:
     def get_currency(self, symbol: str) -> str | None:
         return self.__get_info_values(symbols=[symbol], key="currency").get(symbol)
 
-    def get_currencies(self, symbols: list[str]) -> dict[str, str] | None:
-        return self.__get_info_values(symbols=symbols, key="currency")
+    def get_previous_closes(self, symbols: list[str]):
+        previous_closes: dict[str, float] = {}
+        for symbol, info in self.__get_infos(symbols=symbols).items():
+            if previous_close := info.get("previousClose"):
+                previous_closes[symbol] = previous_close
 
-    def get_previous_close(self, symbol: str) -> float | None:
-        return self.__get_infos(symbols=[symbol]).get(symbol, {}).get("previousClose")
+        return previous_closes
 
     def get_closes(
         self,
