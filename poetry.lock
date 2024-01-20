@@ -449,6 +449,17 @@ files = [
 ]
 
 [[package]]
+name = "kamaalpy"
+version = "0.1.0"
+description = "A package with everything Python"
+optional = false
+python-versions = ">=3.11"
+files = [
+    {file = "kamaalpy-0.1.0-py3-none-any.whl", hash = "sha256:930455c68860727882c2f6c8670fb892daea6e8d7b32f23ae9022e22b9b06cac"},
+    {file = "kamaalpy-0.1.0.tar.gz", hash = "sha256:d1685e769deeecbf06ed9d8786a31b51fcf387e3ba97630e1b71f89a698edf3b"},
+]
+
+[[package]]
 name = "lxml"
 version = "4.9.4"
 description = "Powerful and Pythonic XML processing library combining libxml2/libxslt with the ElementTree API."
@@ -1446,4 +1457,4 @@ requests = ">=2.31"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "bf34230dc998539d080122fab7b03d875d5ce3ea1cfb7c8b30cc4768dd6d0131"
+content-hash = "75835900acca3cc73ff19ad076dd0f44b703b60dc494383c3f17a8ad94da4727"

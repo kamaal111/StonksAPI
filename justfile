@@ -12,12 +12,23 @@ run: stop-and-remove-container
 build:
     docker build -t $CONTAINER_NAME .
 
-run-dev:
+run-dev: install-python-packages
     #!/bin/zsh
 
-    just install-python-packages
     . $VIRTUAL_ENVIRONMENT/bin/activate
     uvicorn app.main:app --reload
+
+make-api-key: install-python-packages
+    #!/bin/zsh
+
+    . $VIRTUAL_ENVIRONMENT/bin/activate
+    python scripts/make_api_key.py
+
+copy-api-keys: install-python-packages
+    #!/bin/zsh
+
+    . $VIRTUAL_ENVIRONMENT/bin/activate
+    python scripts/copy_api_keys.py
 
 bootstrap: setup-python-environment
 
